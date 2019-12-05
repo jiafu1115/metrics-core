@@ -16,6 +16,7 @@ import com.github.metrics.Metric;
 import com.github.metrics.elements.event.ApiCallEvent;
 import com.github.metrics.elements.event.Event;
 import com.github.metrics.elements.event.UsageEvent;
+import com.google.common.base.Strings;
 
 public class OutputMetricByInfluxdb extends AbstractOutputMetric {
 	
@@ -23,6 +24,9 @@ public class OutputMetricByInfluxdb extends AbstractOutputMetric {
  	
 	public OutputMetricByInfluxdb(String influxdbUrl, String userName, String password, String database) {
  		this.influxDB = InfluxDBFactory.connect(influxdbUrl, userName, password);
+ 		if(!this.influxDB.databaseExists(database)) {
+ 	 		this.influxDB.createDatabase(database);
+ 		}
 		this.influxDB.setDatabase(database);
 		this.influxDB.disableBatch();
 	}
@@ -56,7 +60,10 @@ public class OutputMetricByInfluxdb extends AbstractOutputMetric {
  			measurement.addField("success", apiCallEvent.isSuccess());
  			measurement.addField("responseCode", apiCallEvent.getResponseCode());
  			measurement.addField("totalDurationInMS", apiCallEvent.getTotalDurationInMS());
- 			measurement.addField("failReason", apiCallEvent.getFailReason());
+ 			String failReason = apiCallEvent.getFailReason();
+ 			if(!Strings.isNullOrEmpty(failReason)) {
+ 				measurement.addField("failReason", failReason);
+ 			}
   		}else if (event instanceof UsageEvent){
   			UsageEvent usageEvent = (UsageEvent)event;
   			Map<String, AtomicLong> statistics = usageEvent.getStatistics();
